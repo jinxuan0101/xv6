@@ -1,0 +1,3 @@
+https://th0ar.gitbooks.io/xv6-chinese/content/content/chapter1.html
+
+https://pdos.csail.mit.edu/6.828/2025/xv6.html
