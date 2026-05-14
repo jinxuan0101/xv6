@@ -4,8 +4,6 @@
 #include "kernel/fs.h"
 #include "kernel/fcntl.h"
 
-// 从路径中提取文件名，并填充空格到 DIRSIZ 长度后返回
-// 例如："/a/b/c" → "c         "（填充至 DIRSIZ）
 char*
 fmtname(char *path)
 {
@@ -27,9 +25,7 @@ fmtname(char *path)
   return buf;
 }
 
-// 列出 path 路径下的文件/目录信息
-void
-ls(char *path)
+void find(char *path,char *filename)
 {
   char buf[512], *p;
   int fd;
@@ -49,10 +45,17 @@ ls(char *path)
     return;
   }
 
-  switch(st.type){
+  switch(st.type)
+  {
+
   case T_DEVICE:  // 设备文件
+   
+
   case T_FILE:    // 普通文件
-    printf("%s %d %d %d\n", fmtname(path), st.type, st.ino, (int) st.size);
+    if(strcmp(fmtname(path),filename)==0)
+      {
+        printf("%s\n", path);
+      }
     break;
 
   case T_DIR:  // 目录 —— 逐个读取目录项
@@ -65,34 +68,53 @@ ls(char *path)
     p = buf+strlen(buf);
     *p++ = '/';          // p 指向 path 末尾的 '/' 之后，用于拼接文件名
     // 逐项读取目录
-    while(read(fd, &de, sizeof(de)) == sizeof(de)){
+    while(read(fd, &de, sizeof(de)) == sizeof(de))
+    {
       if(de.inum == 0)   // 空的目录项（inode 号为 0）
         continue;
+      if(strcmp(de.name,".")==0)
+      {
+        continue;
+      }
+      if(strcmp(de.name,"..")==0)
+      {
+        continue;
+      }
       memmove(p, de.name, DIRSIZ);  // 将文件名拼接到路径后
       p[DIRSIZ] = 0;                // 确保末尾有 '\0'
-      if(stat(buf, &st) < 0){
+      if(stat(buf, &st) < 0)
+      {
         printf("ls: cannot stat %s\n", buf);
         continue;
       }
-      printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, (int) st.size);
+
+      if(strcmp(de.name,filename)==0)
+      {
+        printf("%s\n", buf);
+        find(buf,filename);
+      }
+      else
+      {
+        find(buf,filename);
+      }
+      
     }
-    break;
   }
   close(fd);
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-  int i;
+ 
 
-  // 无参数时默认列出当前目录
+  // 参数不够时报错
   if(argc < 2){
-    ls(".");
+    fprintf(2, "not enough argv\n");
     exit(0);
   }
-  // 逐个列出每个参数指定的路径
-  for(i=1; i<argc; i++)
-    ls(argv[i]);
+  char *path=argv[1];
+  char *filename=argv[2];
+  find(path,filename);
+  
   exit(0);
 }
